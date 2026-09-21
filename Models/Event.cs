@@ -5,17 +5,24 @@ public class Event
     public int Id { get; set; }
 
     public int CreatedById { get; set; }
+    public int? ParentEventId { get; set; }
     public ulong ChannelId { get; set; }
+    public ulong? ThreadId { get; set; }
     public string? Name { get; set; }
     public DateTime Date { get; set; }
-    public DateTime DateCreated { get; set; }
-    public int? Recurrence { get; set; } // in seconds
+    public DateTime DateCreated { get; set; }    
+
     public int SignupTime { get; set; } // in seconds
     public int? ReminderTime { get; set; } // in seconds
+    public bool SignupAlerted { get; set; }
+    public bool ReminderAlerted { get; set; }
+    public int? Recurrence { get; set; } // in seconds
     public int? RequiredAttendees { get; set; }
     public int? OptionalAttendees { get; set; }
 
+    public Event? ParentEvent { get; set; }
     public List<User>? Attendees { get; set; }
+    public List<Event>? Recurrences { get; set; }
 }
 
 public enum Recurrence

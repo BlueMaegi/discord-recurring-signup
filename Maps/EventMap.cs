@@ -12,15 +12,23 @@ public class EventMap : IEntityTypeConfiguration<Event>
         builder.HasKey(x => x.Id);
 
         builder.Property(x => x.CreatedById).HasColumnName("CreatedById");
+        builder.Property(x => x.ChannelId).HasColumnName("ChannelId");
+        builder.Property(x => x.ThreadId).HasColumnName("ThreadId");
+        builder.Property(x => x.ParentEventId).HasColumnName("ParentEventId");
         builder.Property(x => x.Name).HasColumnName("Name").HasMaxLength(500).IsUnicode(false);
         builder.Property(x => x.Date).HasColumnName("Date").HasColumnType("datetime");
         builder.Property(x => x.DateCreated).HasColumnName("DateCreated").HasColumnType("datetime");
-        builder.Property(x => x.Recurrence).HasColumnName("Recurrence");
         builder.Property(x => x.SignupTime).HasColumnName("SignupTime");
         builder.Property(x => x.ReminderTime).HasColumnName("ReminderTime");
+        builder.Property(x => x.SignupAlerted).HasColumnName("SignupAlerted");
+        builder.Property(x => x.ReminderAlerted).HasColumnName("ReminderAlerted");
+        builder.Property(x => x.Recurrence).HasColumnName("Recurrence");
         builder.Property(x => x.RequiredAttendees).HasColumnName("RequiredAttendees");
         builder.Property(x => x.OptionalAttendees).HasColumnName("OptionalAttendees");
 
+        builder.HasOne(x => x.ParentEvent).WithMany(x => x.Recurrences).HasForeignKey(x => x.ParentEventId).IsRequired(false);
+
+        builder.HasMany(x => x.Recurrences).WithOne(x => x.ParentEvent).HasForeignKey(x => x.ParentEventId);
         builder.HasMany(x => x.Attendees).WithMany()
             .UsingEntity<Dictionary<string, object>>(
             "EventAttendees",

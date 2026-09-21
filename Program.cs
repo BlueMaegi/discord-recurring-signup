@@ -23,8 +23,10 @@ public class Program
 
         var connectionString = configuration.GetConnectionString("AppDbContext");
         var serverVersion = ServerVersion.AutoDetect(connectionString); 
-        services.AddDbContext<ApplicationDbContext>(options => options.UseMySql(connectionString, serverVersion));
+        services.AddDbContextFactory<ApplicationDbContext>(options => options.UseMySql(connectionString, serverVersion));
         var serviceProvider = services.BuildServiceProvider();
+        var dbContextFactory = serviceProvider.GetRequiredService<IDbContextFactory<ApplicationDbContext>>();
+        var signupHandler = new SignupHandler(dbContextFactory);
         var token = configuration.GetValue<string>("AppToken");
 
         var builder = DiscordClientBuilder.CreateDefault(
@@ -32,35 +34,38 @@ public class Program
             DiscordIntents.AllUnprivileged | DiscordIntents.MessageContents,
             services);
 
+
         builder.ConfigureEventHandlers
         (
             b => b.HandleMessageCreated(async (s, e) => 
             {
                 if (e.Message.Content.ToLower().StartsWith("ping"))
                 {
-                    var text = "Pong!";
                     var channel = e.Message.Channel.Id;
-                    using (var scope = serviceProvider.CreateScope())
-                    {
-                        var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-                        var handler = new SignupHandler(context);
-                        text = handler.Get(1)?.Name ?? "This shouldn't happen";
-                    }
-
+                    var text = signupHandler.Get(1)?.Name ?? "This shouldn't happen";
                     await e.Message.RespondAsync(text);
                 }
-            }).HandleGuildDownloadCompleted(async (client, eventArgs) =>
+            }).HandleComponentInteractionCreated(async (s, e) =>
             {
-                var interval = configuration.GetValue<int>("PollIntervalSeconds");
-                _ = Task.Run(() => {
-                    using (var scope = serviceProvider.CreateScope())
+                if (e.Interaction.Type == DiscordInteractionType.Component 
+                    && e.Interaction.Data.ComponentType == DiscordComponentType.Button)
+                {
+                    await e.Interaction.CreateResponseAsync(DiscordInteractionResponseType.DeferredChannelMessageWithSource);
+
+                    var buttonId = e.Interaction.Data.CustomId;
+                    if (buttonId.EndsWith("-join"))
                     {
-                        var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-                        var handler = new SignupHandler(context);
-                        handler.StartPoll(client, interval);
+                        var response = signupHandler.SetUser(e.User, buttonId);
+                        await e.Interaction.CreateFollowupMessageAsync(response);
+                        signupHandler.UpdatePreviousReminders(e.Message);
                     }
-                });
-                await Task.CompletedTask;
+                    if (buttonId.EndsWith("-leave"))
+                    {
+                        var response = signupHandler.SetUser(e.User, buttonId, true);
+                        await e.Interaction.CreateFollowupMessageAsync(response);
+                        signupHandler.UpdatePreviousReminders(e.Message);
+                    }
+                }
             })
         );
         
@@ -83,6 +88,12 @@ public class Program
 
         var client = builder.Build();
         await client.ConnectAsync();
+
+        var interval = configuration.GetValue<int>("PollIntervalSeconds");
+        var handler = new SignupHandler(dbContextFactory);
+        _ = Task.Run(() => { handler.StartPoll(client, interval); });
+        await Task.CompletedTask;
+
         await Task.Delay(-1);
     }
 }

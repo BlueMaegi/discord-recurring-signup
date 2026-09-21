@@ -34,17 +34,17 @@ public class CreateHandler
         var modal = new DiscordModalBuilder
         {
             CustomId = "12345",
-            Title = "New Recurring Signup List"
+            Title = "New Signup List"
         };
 
         var titleTextbox = new DiscordTextInputComponent("event.Name", min_length: 2, max_length: 500);
         modal.AddTextInput(titleTextbox, "Event Title");
 
-        var dateTextbox = new DiscordTextInputComponent("event.Date", "01/30/2999 18:00", min_length:10, max_length:18);
-        modal.AddTextInput(dateTextbox, "Date and Time");
+        var dateTextbox = new DiscordTextInputComponent("event.Date", "01/30/2000 18:00", min_length:10, max_length:18);
+        modal.AddTextInput(dateTextbox, "Date and Time", "24 hour clock");
 
-        var signupAmountTextbox = new DiscordTextInputComponent("event.SignupTime", "5 Hours/Days/Weeks", required:true);
-        modal.AddTextInput(signupAmountTextbox, "Signups open in advance ");
+        var signupAmountTextbox = new DiscordTextInputComponent("event.SignupTime", "5 Days", required:true);
+        modal.AddTextInput(signupAmountTextbox, "Signups open in advance", "Hours, Days, or Weeks only");
 
         /*var recurCheckbox = new DiscordCheckboxComponent("event.Recurs", false);
         modal.AddCheckbox(recurCheckbox, "Is this a recurring event?");
@@ -56,13 +56,11 @@ public class CreateHandler
         modal.AddSelectMenu(recurDropdown, "");
         */
 
-        var requiredTextbox = new DiscordTextInputComponent("event.RequiredAttendees", "2", required:false);
-        modal.AddTextInput(requiredTextbox, "Amount of required attendees");
+        var requiredTextbox = new DiscordTextInputComponent("event.RequiredAttendees", "0", required:false);
+        modal.AddTextInput(requiredTextbox, "Number of required attendees");
 
-        var optionalTextbox = new DiscordTextInputComponent("event.OptionalAttendees", "5", required:false);
-        modal.AddTextInput(optionalTextbox, "Amount of optional attendees");
-
-
+        var optionalTextbox = new DiscordTextInputComponent("event.OptionalAttendees", "0", required:false);
+        modal.AddTextInput(optionalTextbox, "Number of optional attendees");
 
 
         await ((SlashCommandContext)(ctx)).Interaction.CreateResponseAsync(
@@ -86,7 +84,6 @@ public class CreateSubmitHandler : IEventHandler<ModalSubmittedEventArgs>
         using (var scope = serviceProvider.CreateScope())
         {
             var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            
 
             if (e.Interaction.Data.CustomId == "12345")
             {
