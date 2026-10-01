@@ -72,7 +72,7 @@ public class Program
         builder.UseCommands((IServiceProvider serviceProvider, CommandsExtension extension) =>
         {
             extension.AddCommands([typeof(CreateHandler)]);
-            //TODO: delete event command
+            extension.AddCommands([typeof(DeleteHandler)]);
             //TODO: list attendees command (creator only?, hide past events by default)
             //TODO: recurring events
 
